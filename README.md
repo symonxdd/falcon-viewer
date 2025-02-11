@@ -11,6 +11,7 @@ This template should help get you started developing with Tauri + Vue 3 in Vite.
 - `npm run dev` (runs `vite`): Runs only Vue (Vite) in the browser (localhost:1420).
 - `npm run build` (runs `vite build`): Compiles the Vue app for production.
 - `npm run preview` (runs `vite preview`): Previews the built Vue app (without Rust).
-- `npm run tauri` (runs `tauri dev`): Runs the Tauri app (Vue + Rust) in development mode.
+- `npm run tauri-dev` (runs `tauri dev`): Runs the Tauri app (Vue + Rust) in development mode.
+- `npm run tauri` (runs `tauri`): Runs the Tauri CLI; mostly used for installing plugins.
 
 ⚠️ Running `tauri` will run the Tauri CLI and **only** show a list of available commands, like dev, build, etc.
