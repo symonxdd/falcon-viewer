@@ -12,9 +12,10 @@
   "app": {
     "windows": [
       {
-        "title": "falkon-viewer",
-        "width": 800,
-        "height": 600
+        "title": "Falkon Viewer",
+        "width": 1390,
+        "height": 830,
+        "center": true
       }
     ],
     "security": {
