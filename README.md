@@ -5,3 +5,12 @@ This template should help get you started developing with Tauri + Vue 3 in Vite.
 ## Recommended IDE Setup
 
 - [VS Code](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+
+## npm scripts explanation
+
+- `npm run dev` (runs `vite`): Runs only Vue (Vite) in the browser (localhost:1420).
+- `npm run build` (runs `vite build`): Compiles the Vue app for production.
+- `npm run preview` (runs `vite preview`): Previews the built Vue app (without Rust).
+- `npm run tauri` (runs `tauri dev`): Runs the Tauri app (Vue + Rust) in development mode.
+
+⚠️ Running `tauri` will run the Tauri CLI and **only** show a list of available commands, like dev, build, etc.
