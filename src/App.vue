@@ -10,10 +10,7 @@
       </div>
     </div>
 
-    <!-- Image Gallery Component -->
     <ImageGallery v-if="images.length" :images="images" @image-click="showFullImage" />
-
-    <!-- Full Image View Modal -->
     <FullImageView v-if="showFullImageView" :image="selectedImage" @close="closeFullImageView" />
   </div>
 </template>
@@ -37,7 +34,7 @@ async function selectFolder() {
   if (selected) {
     selectedFolderPath.value = selected;
 
-    // Fetch full image & thumbnail paths from Rust
+    // Fetch images and their thumbnail paths from Rust
     const rawImages = await invoke("get_images", { folder_path: selected });
 
     // Convert paths & store in the correct format

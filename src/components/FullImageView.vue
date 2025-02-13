@@ -1,9 +1,6 @@
 <template>
   <button class="mode-toggle" @click="toggleMode">
-    <!-- Scroll Mode Icon (when toggled) -->
     <unicon v-if="isScrollMode" name="direction" :fill="'#acacac'" width="19" />
-
-    <!-- Zoom Mode Icon (default) -->
     <unicon v-if="!isScrollMode" name="search-plus" :fill="'#acacac'" width="19" />
   </button>
 
@@ -43,7 +40,7 @@ const isDragging = ref(false);
 const startX = ref(0);
 const startY = ref(0);
 const imageDimensionsText = ref(""); // Store image dimensions
-const isScrollMode = ref(true); // Default to scroll mode
+const isScrollMode = ref(false); // Default to scroll mode
 
 // Needed to reset when double-clicked
 const initialZoom = ref(1);

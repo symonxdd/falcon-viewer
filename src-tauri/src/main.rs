@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    falkon_viewer_lib::run()
+    falkon_viewer_lib::run() // Calls the `run` function from lib.rs
 }

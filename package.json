@@ -4,11 +4,13 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "tauri dev": "tauri dev",
+    "tauri dev (release)": "tauri dev --release",
+    "tauri build": "tauri build",
+    "tauri": "tauri",
     "dev": "vite",
-    "tauri-dev": "tauri dev",
     "build": "vite build",
-    "preview": "vite preview",
-    "tauri": "tauri"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.0.6",
