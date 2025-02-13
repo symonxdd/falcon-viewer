@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "Falkon Viewer",
-        "width": 1390,
-        "height": 830,
+        "width": 900,
+        "height": 750,
         "center": true
       }
     ],

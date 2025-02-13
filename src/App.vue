@@ -1,84 +1,66 @@
 <template>
   <div class="min-h-screen flex flex-col items-start justify-start bg-[#121212] text-[#e0e0e0] px-4">
-    <!-- Container for the button and folder path aligned on the same line -->
+    <!-- Folder Selection Button & Path -->
     <div class="flex items-center w-full mt-4">
-      <!-- Folder Selection Button -->
       <button @click="selectFolder" class="px-6 py-3 bg-[#222] hover:bg-[#333] text-[#e0e0e0] rounded">
         Select Image Folder
       </button>
-
-      <!-- Display selected folder path with slight spacing and vertical centering -->
-      <div v-if="folderPath" class="ml-4 text-[#b0b0b0] flex items-center">
-        <p>{{ folderPath }}</p>
+      <div v-if="selectedFolderPath" class="ml-4 text-[#b0b0b0] flex items-center">
+        <p>{{ selectedFolderPath }} <span class="text-[#888]">({{ images.length }} items)</span></p>
       </div>
     </div>
 
-    <!-- Virtual Scroller for Images Grid -->
-    <div v-if="images.length" class="w-full mt-6">
-      <RecycleScroller class="scroller" :items="images" :item-size="200" :grid-items="4" :item-secondary-size="200">
-        <template #default="{ item }">
-          <div class="item">
-            <img :src="item" class="square-image" />
-          </div>
-        </template>
-      </RecycleScroller>
-    </div>
+    <!-- Image Gallery Component -->
+    <ImageGallery v-if="images.length" :images="images" @image-click="showFullImage" />
+
+    <!-- Full Image View Modal -->
+    <FullImageView v-if="showFullImageView" :image="selectedImage" @close="closeFullImageView" />
   </div>
 </template>
 
 <script setup>
-import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'; // ✅ Very important...
-
 import { ref } from "vue";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
-import { RecycleScroller } from "vue-virtual-scroller";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import ImageGallery from "./components/ImageGallery.vue";
+import FullImageView from './components/FullImageView.vue';
 
-// Reactive variables to hold the window size
-const folderPath = ref("");
+// Reactive (state) variables
 const images = ref([]);
+const selectedFolderPath = ref("");
+const showFullImageView = ref(false);
+const selectedImage = ref(null);
 
-// Folder selection function
 async function selectFolder() {
   const selected = await open({ directory: true });
   if (selected) {
-    folderPath.value = selected;
+    selectedFolderPath.value = selected;
 
-    // Fetch image paths from Rust
+    // Fetch full image & thumbnail paths from Rust
     const rawImages = await invoke("get_images", { folder_path: selected });
 
-    // ✅ Convert local paths to the correct Tauri format
-    images.value = rawImages.map(path => convertFileSrc(path));
+    // Convert paths & store in the correct format
+    images.value = rawImages.map(([fullPath, thumbPath]) => ({
+      id: fullPath,
+      full: convertFileSrc(fullPath),
+      thumbnail: thumbPath ? convertFileSrc(thumbPath) : null,
+      loaded: false,
+    }));
   }
+}
+
+// Show the full image in the modal
+function showFullImage(image) {
+  selectedImage.value = image;
+  showFullImageView.value = true;
+}
+
+// Close the full image view modal
+function closeFullImageView() {
+  showFullImageView.value = false;
+  selectedImage.value = null;
 }
 </script>
 
-<style scoped>
-.scroller {
-  width: 100%;
-  height: 100%;
-}
-
-.item {
-  padding: 8px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 8px;
-  /* background-color: #333; */
-  position: relative;
-  width: 100%;
-  /* Ensure the item width takes the full space in the scroller */
-  height: 200px;
-  /* Fix item height to 200px */
-}
-
-.square-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  /* Ensures the image covers the square */
-  border-radius: 8px;
-}
-</style>
+<style scoped></style>
