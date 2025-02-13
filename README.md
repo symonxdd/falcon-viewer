@@ -15,3 +15,6 @@ This template should help get you started developing with Tauri + Vue 3 in Vite.
 - `npm run tauri` (runs `tauri`): Runs the Tauri CLI; mostly used for installing plugins.
 
 ⚠️ Running `tauri` will run the Tauri CLI and **only** show a list of available commands, like dev, build, etc.
+
+## Useful developer notes
+- `rustfmt.toml` enforces a space indentation of 2
