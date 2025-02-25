@@ -1,11 +1,10 @@
 <template>
-  <div class="w-full mt-6">
-    <RecycleScroller page-mode class="scroller" :items="images" :item-size="200" :grid-items="4"
-      :item-secondary-size="200" key-field="id">
+  <div class="image-gallery">
+    <RecycleScroller class="scroller" :items="images" :item-size="216" :grid-items="dynamicGridItems"
+      key-field="fileName">
       <template #default="{ item }">
         <div class="item" @click="imageClick(item)">
-          <!-- Show Thumbnail -->
-          <img v-if="item.thumbnail" :src="item.thumbnail" class="square-image" />
+          <img v-if="item.miniature" :src="item.miniature" class="square-image" />
         </div>
       </template>
     </RecycleScroller>
@@ -15,38 +14,60 @@
 <script setup>
 import "vue-virtual-scroller/dist/vue-virtual-scroller.css";
 import { RecycleScroller } from "vue-virtual-scroller";
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 
 // Props to receive the images array
 const props = defineProps({
   images: {
     type: Array,
-    required: true
-  }
+    required: true,
+  },
 });
 
 // Emit the image click event
-const emit = defineEmits(['image-click']);
+const emit = defineEmits(["image-click"]);
 
 function imageClick(item) {
-  emit('image-click', item);
+  emit("image-click", item);
 }
+
+// Grid item settings
+const dynamicGridItems = ref(5); // Default value
+const itemWidth = 202;
+const margin = 16; // Combined left + right margin 
+
+// Compute the total row width dynamically
+const computedWrapperWidth = computed(() => {
+  return `${dynamicGridItems.value * itemWidth + (dynamicGridItems.value - 1) * margin}px`;
+});
+
+// Function to recalculate grid items
+function calculateGridItems() {
+  const containerWidth = document.querySelector(".scroller").clientWidth;
+  dynamicGridItems.value = Math.floor(containerWidth / (itemWidth + margin));
+}
+
+// Recalculate grid items on window resize
+onMounted(() => {
+  calculateGridItems();
+  window.addEventListener("resize", calculateGridItems);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("resize", calculateGridItems);
+});
 </script>
 
 <style scoped>
-.scroller {
-  width: 100%;
-  height: 100%;
+.image-gallery {
+  margin-top: 1.5rem;
 }
 
 .item {
-  padding: 8px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 8px;
-  position: relative;
-  width: 100%;
+  width: 200px;
   height: 200px;
+  border-radius: 8px;
+  margin: 8px;
 }
 
 .square-image {
@@ -54,5 +75,12 @@ function imageClick(item) {
   height: 100%;
   object-fit: cover;
   border-radius: 8px;
+}
+
+/* "deep" selector in a scoped style, affecting child components (RecycleScroller here) */
+/* source: (https://vuejs.org/api/sfc-css-features.html) */
+:deep(.vue-recycle-scroller__item-wrapper) {
+  width: v-bind(computedWrapperWidth) !important;
+  margin: 0 auto;
 }
 </style>

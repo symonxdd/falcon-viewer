@@ -1,9 +1,28 @@
 import { createApp } from "vue";
 import App from "./App.vue";
 import "./styles.css"; // ✅ Import Tailwind CSS!
-import Unicon from 'vue-unicons'
-import { uniDirection, uniSearchPlus } from 'vue-unicons/dist/icons'
 
-Unicon.add([uniDirection, uniSearchPlus])
+import Toast from "vue-toastification";
+import "vue-toastification/dist/index.css";
 
-createApp(App).use(Unicon).mount("#app");
+// ✅ Import Vue Unicons
+import Unicon from "vue-unicons";
+import {
+  uniDirection,
+  uniSearchPlus,
+  uniHeart,
+  uniTrashAlt,
+  uniTimesCircle
+} from "vue-unicons/dist/icons";
+
+Unicon.add([
+  uniDirection,
+  uniSearchPlus,
+  uniHeart,
+  uniTrashAlt,
+  uniTimesCircle]);
+
+const app = createApp(App);
+app.use(Unicon);
+app.use(Toast);
+app.mount("#app");

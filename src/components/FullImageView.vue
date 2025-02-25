@@ -4,21 +4,46 @@
     <unicon v-if="!isScrollMode" name="search-plus" :fill="'#acacac'" width="19" />
   </button>
 
+  <button class="close-button" @click="closeModal">
+    <unicon name="times-circle" fill="#acacac" width="21" />
+  </button>
+
   <div class="overlay" @click="closeModal" @wheel="onScroll">
+
     <div class="modal">
-      <img ref="imgElement" :src="image.full" class="full-image" @click.stop :style="imageStyle" @mousedown="startDrag"
-        @mousemove="onDrag" @mouseup="stopDrag" @mouseleave="stopDrag" @dblclick="handleDoubleClick"
-        @load="updateImageDimensionsText" />
+      <img ref="imgElement" :src="image.fullImage" class="full-image" @click.stop :style="imageStyle"
+        @mousedown="startDrag" @mousemove="onDrag" @mouseup="stopDrag" @mouseleave="stopDrag"
+        @dblclick="handleDoubleClick" @load="updateImageDimensionsText" />
+
+      <div class="image-actions" @click.stop>
+        <button class="" @click="toggleLike">
+          <unicon name="heart" :fill="isLiked ? 'red' : '#acacac'" width="21" />
+        </button>
+        <button class="" @click="deleteImage">
+          <unicon name="trash-alt" fill="#acacac" width="21" />
+        </button>
+      </div>
+
+      <div class="image-filename" @click.stop>
+        {{ image.fileName }}
+      </div>
     </div>
   </div>
 
   <div v-if="imageDimensionsText" class="image-dimensions">
     {{ imageDimensionsText }}
   </div>
+
+  <ConfirmDialog v-if="showConfirmDialog" message="Are you sure you want to delete this image?" @confirm="confirmDelete"
+    @cancel="showConfirmDialog = false" />
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import ConfirmDialog from './ConfirmDialog.vue';
+import { invoke, convertFileSrc } from "@tauri-apps/api/core";
+import { useToast } from 'vue-toastification';
+const toast = useToast();
 
 // Props
 const props = defineProps({
@@ -41,11 +66,38 @@ const startX = ref(0);
 const startY = ref(0);
 const imageDimensionsText = ref(""); // Store image dimensions
 const isScrollMode = ref(false); // Default to scroll mode
+const showConfirmDialog = ref(false);
 
 // Needed to reset when double-clicked
 const initialZoom = ref(1);
 const initialTranslateX = ref(0);
 const initialTranslateY = ref(0);
+const isLiked = ref(false);
+
+const toggleLike = () => {
+  isLiked.value = !isLiked.value;
+  console.log("Heart Clicked!");
+};
+
+const confirmDelete = async () => {
+  showConfirmDialog.value = false; // Close the dialog
+
+  try {
+    // Invoke the Rust method to delete the image
+    await invoke("delete_image", { image_path: props.image.fullImagePath });
+
+    // After deleting, show a toast notification
+    toast.success("Image deleted successfully!");
+    emit("close"); // Close the modal after successful deletion
+  } catch (error) {
+    console.error("Error deleting image:", error);
+    toast.error("Failed to delete the image. Please try again.");
+  }
+};
+
+const deleteImage = async () => {
+  showConfirmDialog.value = true;
+};
 
 // Toggle between zoom and scroll modes
 const toggleMode = () => {
@@ -116,34 +168,9 @@ const onScroll = (event) => {
 
     // Clamp zoom values
     const maxZoom = 5;
-    zoomFactor.value = Math.max(0.5, Math.min(zoomFactor.value, maxZoom));
+    zoomFactor.value = Math.max(0.5, Math.min(zoomFactor.value, 500));
   }
 };
-
-// const onScroll = (event) => {
-//   // Check if the CTRL key is pressed
-//   if (event.ctrlKey) {
-//     const scrollAmount = event.deltaY > 0 ? -VERTICAL_SCROLL_SPEED : VERTICAL_SCROLL_SPEED; // Scroll down = move down, Scroll up = move up
-//     translateY.value += scrollAmount;
-//   } else {
-//     // const zoomDelta = event.deltaY > 0 ? -ZOOM_SPEED : ZOOM_SPEED; // Zoom in or out
-//     // zoomFactor.value += zoomDelta; // Apply zoom change directly without sensitivity based on zoom level
-//     // zoomFactor.value = Math.max(0.5, Math.min(zoomFactor.value, 3)); // Clamp zoom level (for example between 0.5 and 3)
-
-//     // Prevent the default scroll behavior (page scroll)
-//     event.preventDefault();
-
-//     // Zooming in (scroll up) or zooming out (scroll down)
-//     const zoomDelta = event.deltaY < 0 ? ZOOM_SPEED : -ZOOM_SPEED; // Scroll up = zoom in, scroll down = zoom out
-
-//     // Apply the zoom change
-//     zoomFactor.value += zoomDelta;
-
-//     // Clamp zoom to ensure it doesn't go below 0.5x or exceed a reasonable max zoom level
-//     // const maxZoom = 5;  // Limit zoom max to 5x
-//     // zoomFactor.value = Math.max(0.5, Math.min(zoomFactor.value, maxZoom)); // Prevent zooming too much
-//   }
-// };
 
 // Dragging the Image
 const startDrag = (event) => {
@@ -173,15 +200,16 @@ const stopDrag = () => {
 };
 
 const closeModal = (event) => {
-  if (event.target === event.currentTarget) {
-    emit("close");
-  }
+  emit("close");
 };
 
 // Close modal on Escape key
 const handleKeydown = (event) => {
   if (event.key === "Escape") {
     emit("close");
+  }
+  if (event.key === "Delete") {
+    showConfirmDialog.value = true;
   }
 };
 
@@ -227,10 +255,29 @@ onBeforeUnmount(() => {
   /* ✅ Allows interactions with the image */
 }
 
-.image-dimensions {
+.close-button {
   position: fixed;
   top: 10px;
   right: 10px;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: #acacac;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  z-index: 1000;
+  cursor: pointer;
+
+  /* Flexbox to center the icon */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-dimensions {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
   background-color: rgba(0, 0, 0, 0.6);
   color: #acacac;
   padding: 5px 10px;
@@ -245,7 +292,7 @@ onBeforeUnmount(() => {
   top: 10px;
   left: 10px;
   background-color: rgba(0, 0, 0, 0.6);
-  padding: 0px 20px;
+  padding: 4px 8px;
   border-radius: 10px;
   cursor: pointer;
   z-index: 1000;
@@ -255,5 +302,42 @@ onBeforeUnmount(() => {
   /* Center the icon horizontally */
   align-items: center;
   /* Center the icon vertically */
+}
+
+.image-filename {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(93, 65, 156, 0.95);
+  border: 1px solid #2f2150;
+  color: #e4e4e4;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 16px;
+  user-select: text;
+  pointer-events: auto;
+
+  box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2),
+    0px 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.image-actions {
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 15px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 1px 10px;
+  border-radius: 5px;
+  pointer-events: auto;
+  /* ✅ Allow clicks */
+}
+
+.image-actions unicon {
+  cursor: pointer;
+  pointer-events: auto;
 }
 </style>
