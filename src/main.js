@@ -1,28 +1,15 @@
 import { createApp } from "vue";
 import App from "./App.vue";
-import "./styles.css"; // ✅ Import Tailwind CSS!
-
+import "./styles.css";
 import Toast from "vue-toastification";
 import "vue-toastification/dist/index.css";
-
-// ✅ Import Vue Unicons
-import Unicon from "vue-unicons";
-import {
-  uniDirection,
-  uniSearchPlus,
-  uniHeart,
-  uniTrashAlt,
-  uniTimesCircle
-} from "vue-unicons/dist/icons";
-
-Unicon.add([
-  uniDirection,
-  uniSearchPlus,
-  uniHeart,
-  uniTrashAlt,
-  uniTimesCircle]);
+import 'bootstrap-icons/font/bootstrap-icons.css';
 
 const app = createApp(App);
-app.use(Unicon);
-app.use(Toast);
+
+app.use(Toast, {
+  timeout: 2000, // ⏳ Make all toasts disappear in 2 seconds
+  pauseOnHover: false, // Don't pause when hovered
+});
+
 app.mount("#app");

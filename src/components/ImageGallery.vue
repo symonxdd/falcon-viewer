@@ -60,7 +60,8 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .image-gallery {
-  margin-top: 1.5rem;
+  margin-top: 3.5rem;
+  user-select: none;
 }
 
 .item {

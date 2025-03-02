@@ -1,10 +1,12 @@
-use image::{imageops::FilterType, GenericImageView, ImageReader};
+use image::{imageops::FilterType, ImageReader};
 use rayon::prelude::*;
 use serde::Serialize;
 use std::fs::{self, File};
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Emitter};
+
+use crate::likes::load_liked_images;
 
 // 📢 Event payload structure
 #[derive(Clone, Serialize)]
@@ -13,6 +15,7 @@ struct ImageProcessed {
   file_name: String,
   image_path: Option<String>,
   miniature_path: Option<String>,
+  is_liked: bool,
 }
 
 // 🖼️ Helper function to generate thumbnails
@@ -40,20 +43,11 @@ fn generate_thumbnail(image_path: &str) -> Option<String> {
     .ok()?;
 
   // Resize to 200x200 while maintaining aspect ratio
-  let thumbnail = img.resize(200, 200, FilterType::Lanczos3);
-  let (width, height) = thumbnail.dimensions();
-  let crop_width = std::cmp::min(width, 200);
-  let crop_height = std::cmp::min(height, 200);
-  let cropped_thumbnail = thumbnail.crop_imm(
-    (width - crop_width) / 2,
-    (height - crop_height) / 2,
-    crop_width,
-    crop_height,
-  );
+  let thumbnail = img.resize(400, 400, FilterType::Lanczos3);
 
   // Save the generated thumbnail
   let thumbnail_path_str = thumbnail_path.to_str()?;
-  cropped_thumbnail.save(thumbnail_path_str).ok()?;
+  thumbnail.save(thumbnail_path_str).ok()?;
 
   Some(thumbnail_path_str.to_string()) // ✅ Return path of the new thumbnail
 }
@@ -61,6 +55,8 @@ fn generate_thumbnail(image_path: &str) -> Option<String> {
 // Process images & emit events (does not return anything)
 #[tauri::command(rename_all = "snake_case")]
 pub async fn process_images(app: AppHandle, folder_path: String) {
+  let liked_images = load_liked_images(&app);
+
   let folder_path = Path::new(&folder_path);
 
   if folder_path.exists() && folder_path.is_dir() {
@@ -76,6 +72,7 @@ pub async fn process_images(app: AppHandle, folder_path: String) {
       paths.into_par_iter().for_each(|path| {
         let full_path = path.to_str().unwrap_or_default().to_string();
         let thumbnail_path = generate_thumbnail(&full_path);
+        let is_liked = liked_images.contains(&full_path);
 
         // 📢 Emit event to frontend after processing each image
         app
@@ -85,6 +82,7 @@ pub async fn process_images(app: AppHandle, folder_path: String) {
               file_name: path.file_name().unwrap().to_str().unwrap().to_string(),
               image_path: Some(full_path.clone()),
               miniature_path: thumbnail_path.clone(),
+              is_liked,
             },
           )
           .ok(); // ✅ Don't panic if emitting fails

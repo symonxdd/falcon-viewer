@@ -1,37 +1,51 @@
 <template>
-  <button class="mode-toggle" @click="toggleMode">
-    <unicon v-if="isScrollMode" name="direction" :fill="'#acacac'" width="19" />
-    <unicon v-if="!isScrollMode" name="search-plus" :fill="'#acacac'" width="19" />
-  </button>
-
-  <button class="close-button" @click="closeModal">
-    <unicon name="times-circle" fill="#acacac" width="21" />
+  <button class="close-button" :class="{ 'hidden-elements': isDragging }" @click="closeModal">
+    <i class="bi bi-x-circle"></i>
   </button>
 
   <div class="overlay" @click="closeModal" @wheel="onScroll">
-
     <div class="modal">
-      <img ref="imgElement" :src="image.fullImage" class="full-image" @click.stop :style="imageStyle"
-        @mousedown="startDrag" @mousemove="onDrag" @mouseup="stopDrag" @mouseleave="stopDrag"
-        @dblclick="handleDoubleClick" @load="updateImageDimensionsText" />
+      <img class="full-image" ref="imgElement" :src="image.fullImage" @click.stop :style="imageStyle"
+        @mousedown="startDrag" @dblclick="handleDoubleClick" @load="updateImageDimensionsText" />
 
-      <div class="image-actions" @click.stop>
-        <button class="" @click="toggleLike">
-          <unicon name="heart" :fill="isLiked ? 'red' : '#acacac'" width="21" />
-        </button>
-        <button class="" @click="deleteImage">
-          <unicon name="trash-alt" fill="#acacac" width="21" />
-        </button>
+      <div class="image-information">
+        <div class="image-buttons-group" @click.stop>
+          <div class="image-actions" :class="{ 'hidden-elements': isDragging }">
+            <button @click="toggleLike">
+              <i class="bi bi-heart-fill" :style="{ color: heartColor }"></i>
+            </button>
+            <button @click="deleteImage">
+              <i class="bi bi-trash2"></i>
+            </button>
+          </div>
+
+          <div class="image-navigation" :class="{ 'hidden-elements': isDragging }">
+            <button @click="previousImage">
+              <i class="bi bi-arrow-left"></i>
+            </button>
+            <button @click="nextImage">
+              <i class="bi bi-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="image-filename" @click.stop :class="{ 'hidden-elements': isDragging }">
+          {{ image.fileName }}
+        </div>
       </div>
 
-      <div class="image-filename" @click.stop>
-        {{ image.fileName }}
-      </div>
     </div>
   </div>
 
-  <div v-if="imageDimensionsText" class="image-dimensions">
-    {{ imageDimensionsText }}
+  <div class="bottom-left-container">
+    <div v-if="imageDimensionsText" class="image-dimensions" :class="{ 'hidden-elements': isDragging }">
+      {{ imageDimensionsText }}
+    </div>
+
+    <button class="mode-toggle" :class="{ 'hidden-elements': isDragging }" @click="toggleMode">
+      <i class="bi bi-arrows-vertical" v-if="isScrollMode"></i>
+      <i class="bi bi-zoom-in" v-if="!isScrollMode"></i>
+    </button>
   </div>
 
   <ConfirmDialog v-if="showConfirmDialog" message="Are you sure you want to delete this image?" @confirm="confirmDelete"
@@ -41,7 +55,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import ConfirmDialog from './ConfirmDialog.vue';
-import { invoke, convertFileSrc } from "@tauri-apps/api/core";
+import { invoke } from "@tauri-apps/api/core";
 import { useToast } from 'vue-toastification';
 const toast = useToast();
 
@@ -54,7 +68,7 @@ const props = defineProps({
 });
 
 // Emit event for closing modal
-const emit = defineEmits(["close"]);
+const emit = defineEmits(["close", "changeImage"]);
 
 // Reactive properties
 const imgElement = ref(null);
@@ -67,17 +81,12 @@ const startY = ref(0);
 const imageDimensionsText = ref(""); // Store image dimensions
 const isScrollMode = ref(false); // Default to scroll mode
 const showConfirmDialog = ref(false);
+const isLiked = ref(props.image.isLiked);
 
 // Needed to reset when double-clicked
 const initialZoom = ref(1);
 const initialTranslateX = ref(0);
 const initialTranslateY = ref(0);
-const isLiked = ref(false);
-
-const toggleLike = () => {
-  isLiked.value = !isLiked.value;
-  console.log("Heart Clicked!");
-};
 
 const confirmDelete = async () => {
   showConfirmDialog.value = false; // Close the dialog
@@ -92,6 +101,20 @@ const confirmDelete = async () => {
   } catch (error) {
     console.error("Error deleting image:", error);
     toast.error("Failed to delete the image. Please try again.");
+  }
+};
+
+const toggleLike = async () => {
+  isLiked.value = !isLiked.value; // Instantly update UI
+
+  try {
+    const newLikeState = await invoke("toggle_like", {
+      image_path: props.image.fullImagePath,
+    });
+    props.image.isLiked = newLikeState;
+    console.log(`Image ${props.image.fullImagePath} has changed it's like state to ${newLikeState}`);
+  } catch (error) {
+    console.error("Failed to toggle like:", error);
   }
 };
 
@@ -115,7 +138,7 @@ const updateImageDimensionsText = () => {
 const ZOOM_SPEED = 0.2; // 30% per scroll step
 const VERTICAL_SCROLL_SPEED = 35; // Movement speed
 
-// Compute dynamic image styles
+const heartColor = computed(() => (isLiked.value ? '#D63031' : '#a8a8a8'));
 const imageStyle = computed(() => ({
   transform: `scale(${zoomFactor.value}) translate(${translateX.value}px, ${translateY.value}px)`,
   transition: isDragging.value ? "none" : "transform 0.2s ease",
@@ -181,6 +204,10 @@ const startDrag = (event) => {
   // Calculate initial offset based on zoom level
   startX.value = event.clientX - translateX.value * zoomFactor.value;
   startY.value = event.clientY - translateY.value * zoomFactor.value;
+
+  document.addEventListener("mousemove", onDrag);
+  document.addEventListener("mouseup", stopDrag);
+  document.addEventListener("mouseleave", stopDrag);
 };
 
 const onDrag = (event) => {
@@ -197,9 +224,14 @@ const onDrag = (event) => {
 
 const stopDrag = () => {
   isDragging.value = false;
+
+  document.removeEventListener("mousemove", onDrag);
+  document.removeEventListener("mouseup", stopDrag);
+  document.removeEventListener("mouseleave", stopDrag);
 };
 
 const closeModal = (event) => {
+  if (event.target.closest(".modal")) return;
   emit("close");
 };
 
@@ -213,9 +245,24 @@ const handleKeydown = (event) => {
   }
 };
 
+const handleMouseBackButton = (event) => {
+  if (event.button === 3) {
+    emit("close");
+  }
+};
+
+const previousImage = () => {
+  emit("changeImage", "prev");
+};
+
+const nextImage = () => {
+  emit("changeImage", "next");
+};
+
 // Register and cleanup event listeners
 onMounted(() => {
   window.addEventListener("keydown", handleKeydown);
+  document.addEventListener("mousedown", handleMouseBackButton);
 
   // Store initial values when the component is mounted
   initialZoom.value = zoomFactor.value;
@@ -225,6 +272,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", handleKeydown);
+  document.removeEventListener("mousedown", handleMouseBackButton);
 });
 </script>
 
@@ -239,6 +287,9 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 2000;
+  backdrop-filter: blur(50px);
+  -webkit-backdrop-filter: blur(50px);
 }
 
 .modal {
@@ -252,6 +303,7 @@ onBeforeUnmount(() => {
 .full-image {
   user-select: none;
   pointer-events: auto;
+  box-shadow: 0px 12px 24px rgba(0, 0, 0, 0.8);
   /* ✅ Allows interactions with the image */
 }
 
@@ -259,85 +311,124 @@ onBeforeUnmount(() => {
   position: fixed;
   top: 10px;
   right: 10px;
-  background-color: rgba(0, 0, 0, 0.6);
   color: #acacac;
-  padding: 5px 10px;
   border-radius: 15px;
-  font-family: Arial, sans-serif;
   font-size: 14px;
-  z-index: 1000;
+  z-index: 2001;
   cursor: pointer;
 
-  /* Flexbox to center the icon */
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 5px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.6s ease;
 }
 
-.image-dimensions {
+.bottom-left-container {
   position: fixed;
   bottom: 10px;
   left: 10px;
-  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  z-index: 2001;
+}
+
+.image-dimensions {
   color: #acacac;
   padding: 5px 10px;
   border-radius: 5px;
-  font-family: Arial, sans-serif;
   font-size: 14px;
-  z-index: 1000;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.6s ease;
 }
 
 .mode-toggle {
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  background-color: rgba(0, 0, 0, 0.6);
-  padding: 4px 8px;
-  border-radius: 10px;
-  cursor: pointer;
-  z-index: 1000;
+  margin-left: 8px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.6s ease;
+}
+
+.hidden-elements {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.image-information {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  /* Use flex to center items */
-  justify-content: center;
-  /* Center the icon horizontally */
+  flex-direction: column;
   align-items: center;
-  /* Center the icon vertically */
+  gap: 10px;
+}
+
+.image-buttons-group {
+  display: flex;
+  gap: 10px;
+  /* Space between action buttons and navigation buttons */
+  align-items: center;
+}
+
+.image-actions,
+.image-navigation {
+  display: flex;
+  gap: 15px;
+  /* Keeps space between buttons inside each group */
+  background-color: rgba(15, 15, 15, 0.7);
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
+  border: 1px solid #272727;
+  padding: 3px 14px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.6s ease;
+  pointer-events: auto;
+}
+
+.image-navigation {
+  border-radius: 20px;
+  padding: 4.5px 14px;
 }
 
 .image-filename {
-  position: absolute;
-  top: 60px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: rgba(93, 65, 156, 0.95);
-  border: 1px solid #2f2150;
+  background-color: rgba(15, 15, 15, 0.7);
+  box-shadow: 0px 12px 24px rgba(0, 0, 0, 0.5);
+  border: 1px solid #272727;
   color: #e4e4e4;
-  padding: 5px 10px;
-  border-radius: 5px;
-  font-size: 16px;
+  padding: 8px 20px;
+  border-radius: 10px;
+  /* 5px */
   user-select: text;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.6s ease;
   pointer-events: auto;
-
-  box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2),
-    0px 12px 24px rgba(0, 0, 0, 0.15);
 }
 
-.image-actions {
-  position: absolute;
-  bottom: 50px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 15px;
-  background: rgba(0, 0, 0, 0.6);
-  padding: 1px 10px;
-  border-radius: 5px;
-  pointer-events: auto;
-  /* ✅ Allow clicks */
-}
-
-.image-actions unicon {
+.bi {
   cursor: pointer;
-  pointer-events: auto;
+  color: #a8a8a8;
+}
+
+.bi.bi-x-circle {
+  font-size: 1rem;
+}
+
+.bi.bi-heart-fill,
+.bi.bi-trash2,
+.bi.bi-arrow-left,
+.bi.bi-arrow-right {
+  font-size: 1.3rem;
+  transition: color 0.3s ease;
+}
+
+.bi.bi-trash2 {
+  font-size: 1.4rem;
 }
 </style>

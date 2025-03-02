@@ -1130,6 +1130,7 @@ dependencies = [
 name = "falkon-viewer"
 version = "0.1.0"
 dependencies = [
+ "dirs 6.0.0",
  "image 0.25.5",
  "mime",
  "rayon",

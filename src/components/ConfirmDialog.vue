@@ -80,7 +80,7 @@ button {
   cursor: pointer;
   transition: all 0.2s ease-in-out;
   outline: none;
-  border: 2px solid transparent;
+  border: 1px solid transparent;
   /* Transparent border initially */
   background: transparent;
   /* Transparent background */
@@ -92,8 +92,9 @@ button {
 
 /* Confirm button */
 .confirm-btn {
-  border-color: #4caf50;
-  /* Green border */
+  /* border-color: #1156be; */
+  background-color: #1156be;
+  /* border-color: #636363; */
 }
 
 .confirm-btn:hover {
@@ -109,10 +110,8 @@ button {
 
 /* Cancel button */
 .cancel-btn {
-  border-color: #e53935;
-  /* Red border */
+  border-color: #636363;
   margin-left: 12px;
-  /* Increase space between buttons */
 }
 
 .cancel-btn:hover {
