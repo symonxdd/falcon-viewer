@@ -10,12 +10,19 @@
 
       <div class="image-information">
         <div class="image-buttons-group" @click.stop>
+
           <div class="image-actions" :class="{ 'hidden-elements': isDragging }">
             <button @click="toggleLike">
-              <i class="bi bi-heart-fill" :style="{ color: heartColor }"></i>
+              <i :class="isLiked ? 'bi bi-heart-fill' : 'bi bi-heart'" :style="{ color: heartColor }"></i>
             </button>
             <button @click="deleteImage">
               <i class="bi bi-trash2"></i>
+            </button>
+          </div>
+
+          <div class="image-album" :class="{ 'hidden-elements': isDragging }">
+            <button @click="">
+              <i class="bi bi-folder"></i>
             </button>
           </div>
 
@@ -81,7 +88,6 @@ const startY = ref(0);
 const imageDimensionsText = ref(""); // Store image dimensions
 const isScrollMode = ref(false); // Default to scroll mode
 const showConfirmDialog = ref(false);
-const isLiked = ref(props.image.isLiked);
 
 // Needed to reset when double-clicked
 const initialZoom = ref(1);
@@ -105,7 +111,7 @@ const confirmDelete = async () => {
 };
 
 const toggleLike = async () => {
-  isLiked.value = !isLiked.value; // Instantly update UI
+  // isLiked.value = !isLiked.value; // Instantly update UI
 
   try {
     const newLikeState = await invoke("toggle_like", {
@@ -138,6 +144,7 @@ const updateImageDimensionsText = () => {
 const ZOOM_SPEED = 0.2; // 30% per scroll step
 const VERTICAL_SCROLL_SPEED = 35; // Movement speed
 
+const isLiked = computed(() => props.image.isLiked);
 const heartColor = computed(() => (isLiked.value ? '#D63031' : '#a8a8a8'));
 const imageStyle = computed(() => ({
   transform: `scale(${zoomFactor.value}) translate(${translateX.value}px, ${translateY.value}px)`,
@@ -376,7 +383,8 @@ onBeforeUnmount(() => {
 }
 
 .image-actions,
-.image-navigation {
+.image-navigation,
+.image-album {
   display: flex;
   gap: 15px;
   /* Keeps space between buttons inside each group */
@@ -420,12 +428,13 @@ onBeforeUnmount(() => {
   font-size: 1rem;
 }
 
+.bi.bi-heart,
 .bi.bi-heart-fill,
 .bi.bi-trash2,
 .bi.bi-arrow-left,
-.bi.bi-arrow-right {
+.bi.bi-arrow-right,
+.bi.bi-folder {
   font-size: 1.3rem;
-  transition: color 0.3s ease;
 }
 
 .bi.bi-trash2 {
